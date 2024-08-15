@@ -154,17 +154,16 @@ export default function App() {
   
         const intervalId = setInterval(() => {
           const timestamp = Math.floor(Date.now() / 1000); // Get current Unix timestamp in seconds
-          const buffer = new ArrayBuffer(4); // 4 bytes for the timestamp
-          const view = new DataView(buffer);
-          view.setUint32(0, timestamp, true); // true for little-endian
+          const timestampStr = timestamp.toString(); // Convert timestamp to string
+          const encodedString = new TextEncoder().encode(timestampStr); // Encode string to Uint8Array
   
           BleManager.write(
             peripheral.id,
             serviceUUID,
             characteristicUUID,
-            Array.from(new Uint8Array(buffer)) // Convert buffer to array for BLE write
+            Array.from(encodedString) // Convert Uint8Array to array for BLE write
           )
-            .then(() => console.debug(`[connectPeripheral][${peripheral.id}] sent timestamp: ${timestamp}.`))
+            .then(() => console.debug(`[connectPeripheral][${peripheral.id}] sent timestamp: ${timestampStr}.`))
             .catch(error => console.error(`[connectPeripheral][${peripheral.id}] failed to send timestamp.`, error));
         }, 10000);
   
@@ -174,6 +173,7 @@ export default function App() {
       console.error(`[connectPeripheral][${peripheral.id}] connectPeripheral error`, error);
     }
   };
+  
   
 
   function sleep(ms: number) {
