@@ -133,42 +133,48 @@ export default function App() {
     try {
       if (peripheral) {
         addOrUpdatePeripheral(peripheral.id, { ...peripheral, connecting: true });
-
+  
         await BleManager.connect(peripheral.id);
         console.debug(`[connectPeripheral][${peripheral.id}] connected.`);
-
+  
         addOrUpdatePeripheral(peripheral.id, {
           ...peripheral,
           connecting: false,
           connected: true,
         });
-
+  
         await sleep(900);
-
+  
         const peripheralData = await BleManager.retrieveServices(peripheral.id);
         console.debug(`[connectPeripheral][${peripheral.id}] retrieved peripheral services`, peripheralData);
-
-        // Start sending messages every 10 seconds
+  
+        // Start sending timestamps every 10 seconds
         const serviceUUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b'; // Replace with your service UUID
         const characteristicUUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8'; // Replace with your characteristic UUID
-
+  
         const intervalId = setInterval(() => {
+          const timestamp = Math.floor(Date.now() / 1000); // Get current Unix timestamp in seconds
+          const buffer = new ArrayBuffer(4); // 4 bytes for the timestamp
+          const view = new DataView(buffer);
+          view.setUint32(0, timestamp, true); // true for little-endian
+  
           BleManager.write(
             peripheral.id,
             serviceUUID,
             characteristicUUID,
-            [0x48, 0x45, 0x4c, 0x4c, 0x4f] // "HELLO" in ASCII
+            Array.from(new Uint8Array(buffer)) // Convert buffer to array for BLE write
           )
-            .then(() => console.debug(`[connectPeripheral][${peripheral.id}] sent HELLO message.`))
-            .catch(error => console.error(`[connectPeripheral][${peripheral.id}] failed to send HELLO message.`, error));
+            .then(() => console.debug(`[connectPeripheral][${peripheral.id}] sent timestamp: ${timestamp}.`))
+            .catch(error => console.error(`[connectPeripheral][${peripheral.id}] failed to send timestamp.`, error));
         }, 10000);
-
+  
         setMessageInterval(intervalId);
       }
     } catch (error) {
       console.error(`[connectPeripheral][${peripheral.id}] connectPeripheral error`, error);
     }
   };
+  
 
   function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
